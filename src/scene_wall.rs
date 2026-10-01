@@ -109,6 +109,7 @@ pub fn build_scene() -> VoxelGrid {
     build_pavilion(&mut g, &mut b);
     build_trees(&mut g, &mut b);
     build_rocks(&mut g, &mut b);
+    g.build_distance_field();
     g
 }
 

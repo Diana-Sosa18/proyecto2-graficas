@@ -21,7 +21,13 @@ pub struct VoxelGrid {
     pub nz: i32,
     pub origin: Vec3,
     voxels: Vec<Voxel>,
+    /// Distancia de Chebyshev (en celdas, saturada) a la celda ocupada mas
+    /// cercana. Permite saltar espacio vacio durante el recorrido.
+    empty_dist: Vec<u8>,
 }
+
+/// Distancia maxima almacenada en el campo de distancias.
+const MAX_SKIP: u8 = 12;
 
 impl VoxelGrid {
     pub fn new(nx: i32, ny: i32, nz: i32) -> Self {
@@ -31,6 +37,7 @@ impl VoxelGrid {
             nz,
             origin: vec3(-nx as f32 * 0.5, 0.0, -nz as f32 * 0.5),
             voxels: vec![Voxel::EMPTY; (nx * ny * nz) as usize],
+            empty_dist: Vec::new(),
         }
     }
 
@@ -69,6 +76,45 @@ impl VoxelGrid {
                 }
             }
         }
+    }
+
+    /// Calcula el campo de distancias con tres pasadas separables (una por eje):
+    /// d(p) = min sobre celdas ocupadas q de max(|px-qx|, |py-qy|, |pz-qz|).
+    /// Debe llamarse despues de terminar de construir la escena.
+    pub fn build_distance_field(&mut self) {
+        let (nx, ny, nz) = (self.nx, self.ny, self.nz);
+        let n = (nx * ny * nz) as usize;
+        let cap = MAX_SKIP as i32;
+        let mut cur: Vec<u8> = self.voxels.iter().map(|v| if v.occupied() { 0 } else { MAX_SKIP }).collect();
+        let mut next = vec![MAX_SKIP; n];
+        let dims = [nx, ny, nz];
+        for axis in 0..3 {
+            for y in 0..ny {
+                for z in 0..nz {
+                    for x in 0..nx {
+                        let p = [x, y, z];
+                        let mut best = cur[self.index(x, y, z)] as i32;
+                        for k in 1..cap.min(best + 1) {
+                            if k >= best {
+                                break;
+                            }
+                            for sgn in [-1, 1] {
+                                let mut q = p;
+                                q[axis] += sgn * k;
+                                if q[axis] < 0 || q[axis] >= dims[axis] {
+                                    continue;
+                                }
+                                let d = (cur[self.index(q[0], q[1], q[2])] as i32).max(k);
+                                best = best.min(d);
+                            }
+                        }
+                        next[self.index(x, y, z)] = best as u8;
+                    }
+                }
+            }
+            std::mem::swap(&mut cur, &mut next);
+        }
+        self.empty_dist = cur;
     }
 
     /// Interseccion rayo-AABB por el metodo de slabs, en espacio de grilla.
@@ -151,7 +197,36 @@ impl VoxelGrid {
             }
         }
 
+        let use_skip = medium == 0 && !self.empty_dist.is_empty();
+        // t en el que el rayo entro a la celda actual.
+        let mut t_cell = t_start;
         loop {
+            // Salto de espacio vacio: si la celda actual esta a distancia `dist`
+            // de cualquier bloque, el rayo puede avanzar dist-1 unidades sin chocar.
+            if use_skip {
+                let dist = self.empty_dist[self.index(cell[0], cell[1], cell[2])];
+                if dist >= 3 {
+                    let t_jump = t_cell + dist as f32 - 1.05;
+                    if t_jump > t_exit {
+                        return None;
+                    }
+                    let p = o + d * t_jump;
+                    let jumped = [p.x.floor() as i32, p.y.floor() as i32, p.z.floor() as i32];
+                    if !self.in_bounds(jumped[0], jumped[1], jumped[2]) {
+                        return None;
+                    }
+                    t_cell = t_jump;
+                    if jumped != cell {
+                        cell = jumped;
+                        for a in 0..3 {
+                            if step[a] != 0 {
+                                let next = cell[a] as f32 + if step[a] > 0 { 1.0 } else { 0.0 };
+                                t_max[a] = (next - o[a]) / d[a];
+                            }
+                        }
+                    }
+                }
+            }
             let axis = if t_max[0] < t_max[1] {
                 if t_max[0] < t_max[2] { 0 } else { 2 }
             } else if t_max[1] < t_max[2] {
@@ -168,6 +243,7 @@ impl VoxelGrid {
                 return None;
             }
             t_max[axis] += t_delta[axis];
+            t_cell = t;
             let m = self.get(cell[0], cell[1], cell[2]);
             if m != medium {
                 return Some(make_hit(t, axis, cell, m));

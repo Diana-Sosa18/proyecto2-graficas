@@ -40,6 +40,10 @@ fn build_scene() -> Scene {
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
+    if args.iter().any(|a| a == "--bench") {
+        bench();
+        return;
+    }
     if let Some(i) = args.iter().position(|a| a == "--render") {
         let out = args.get(i + 1).map(String::as_str).unwrap_or("render.png");
         let mut camera = default_camera();
@@ -67,6 +71,23 @@ fn render_to_file(path: &Path, camera: &Camera) {
     println!("Render {}x{} en {:.2?}", WIDTH, HEIGHT, start.elapsed());
     image_export::save_png(path, fb.width, fb.height, &fb.pixels).expect("no se pudo guardar el PNG");
     println!("Guardado en {}", path.display());
+}
+
+/// Mide el tiempo promedio de render en 12 vistas alrededor del diorama.
+fn bench() {
+    let scene = build_scene();
+    let mut camera = default_camera();
+    let mut fb = Framebuffer::new(WIDTH, HEIGHT);
+    let mut total = 0.0;
+    let views = 12;
+    for i in 0..views {
+        let yaw = i as f32 / views as f32 * std::f32::consts::TAU;
+        camera.set_orbit(yaw, 0.35 + 0.25 * (i % 3) as f32, 140.0 + 40.0 * (i % 2) as f32);
+        let start = Instant::now();
+        renderer::render(&mut fb, &scene, &camera);
+        total += start.elapsed().as_secs_f64() * 1000.0;
+    }
+    println!("Promedio {}x{}: {:.1} ms por cuadro ({} vistas)", WIDTH, HEIGHT, total / views as f64, views);
 }
 
 fn run_window() {

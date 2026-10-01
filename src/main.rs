@@ -6,6 +6,7 @@ mod ray;
 mod raytracer;
 mod renderer;
 mod scene_wall;
+mod skybox;
 mod texture;
 mod voxel;
 mod voxel_grid;
@@ -31,8 +32,10 @@ fn default_camera() -> Camera {
 fn build_scene() -> Scene {
     let start = Instant::now();
     let grid = scene_wall::build_scene();
-    println!("Escena construida en {:.2?}", start.elapsed());
-    Scene { grid, materials: material::material_table(), lighting: lighting::Lighting::default() }
+    let lighting = lighting::Lighting::default();
+    let skybox = skybox::Skybox::new(lighting.sun_dir, lighting.sun_color);
+    println!("Escena y skybox listos en {:.2?}", start.elapsed());
+    Scene { grid, materials: material::material_table(), lighting, skybox }
 }
 
 fn main() {

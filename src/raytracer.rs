@@ -1,6 +1,7 @@
 use crate::lighting::{self, Lighting};
 use crate::material::{self, Material};
 use crate::ray::Ray;
+use crate::skybox::Skybox;
 use crate::texture::{self, SurfacePoint};
 use crate::voxel_grid::{Hit, VoxelGrid};
 use nalgebra_glm::{vec3, Vec3};
@@ -9,6 +10,7 @@ pub struct Scene {
     pub grid: VoxelGrid,
     pub materials: Vec<Material>,
     pub lighting: Lighting,
+    pub skybox: Skybox,
 }
 
 /// Profundidad maxima de recursion para reflexion/refraccion.
@@ -23,7 +25,7 @@ pub fn trace(scene: &Scene, ray: &Ray) -> Vec3 {
 /// Lanza un rayo que viaja por `medium` y devuelve el color que ve.
 fn cast(scene: &Scene, ray: &Ray, depth: u32, medium: u8) -> Vec3 {
     let Some(hit) = scene.grid.trace(ray, f32::INFINITY, medium) else {
-        return sky(ray);
+        return scene.skybox.sample(ray.dir);
     };
     let entering_transparent = scene.materials[hit.material_id as usize].transparency > 0.0;
     let color = if medium != material::AIR && hit.material_id == material::AIR {
@@ -164,9 +166,4 @@ fn shade(scene: &Scene, ray: &Ray, hit: &Hit, depth: u32) -> Vec3 {
         color = color * (1.0 - mat.reflectivity) + reflected.component_mul(&tint) * mat.reflectivity;
     }
     color
-}
-
-fn sky(ray: &Ray) -> Vec3 {
-    let t = ray.dir.y.max(0.0);
-    vec3(0.75, 0.85, 0.95) * (1.0 - t) + vec3(0.25, 0.45, 0.85) * t
 }

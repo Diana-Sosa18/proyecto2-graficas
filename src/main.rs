@@ -42,7 +42,10 @@ fn main() {
         let mut camera = default_camera();
         if let Some(v) = args.iter().position(|a| a == "--view").and_then(|j| args.get(j + 1)) {
             let p: Vec<f32> = v.split(',').filter_map(|n| n.trim().parse().ok()).collect();
-            if p.len() == 3 {
+            if p.len() >= 6 {
+                camera.target = vec3(p[3], p[4], p[5]);
+            }
+            if p.len() >= 3 {
                 camera.set_orbit(p[0], p[1], p[2]);
             }
         }

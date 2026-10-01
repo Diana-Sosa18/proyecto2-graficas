@@ -215,7 +215,6 @@ impl VoxelGrid {
                     if !self.in_bounds(jumped[0], jumped[1], jumped[2]) {
                         return None;
                     }
-                    t_cell = t_jump;
                     if jumped != cell {
                         cell = jumped;
                         for a in 0..3 {
@@ -249,11 +248,6 @@ impl VoxelGrid {
                 return Some(make_hit(t, axis, cell, m));
             }
         }
-    }
-
-    /// Centro de una celda en coordenadas de mundo.
-    pub fn cell_center(&self, x: i32, y: i32, z: i32) -> Vec3 {
-        self.origin + vec3(x as f32 + 0.5, y as f32 + 0.5, z as f32 + 0.5)
     }
 }
 

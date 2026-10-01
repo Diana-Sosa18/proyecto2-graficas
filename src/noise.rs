@@ -51,34 +51,11 @@ pub fn value_noise2(x: f32, z: f32, seed: u32) -> f32 {
     lerp(lerp(a, b, tx), lerp(c, d, tx), tz)
 }
 
-/// Value noise 3D suavizado, en [0, 1].
-pub fn value_noise3(x: f32, y: f32, z: f32, seed: u32) -> f32 {
-    let (xi, yi, zi) = (x.floor() as i32, y.floor() as i32, z.floor() as i32);
-    let (tx, ty, tz) = (fade(x - xi as f32), fade(y - yi as f32), fade(z - zi as f32));
-    let h = |dx, dy, dz| hash3(xi + dx, yi + dy, zi + dz, seed);
-    let x00 = lerp(h(0, 0, 0), h(1, 0, 0), tx);
-    let x10 = lerp(h(0, 1, 0), h(1, 1, 0), tx);
-    let x01 = lerp(h(0, 0, 1), h(1, 0, 1), tx);
-    let x11 = lerp(h(0, 1, 1), h(1, 1, 1), tx);
-    lerp(lerp(x00, x10, ty), lerp(x01, x11, ty), tz)
-}
-
 /// Suma fractal de octavas (fBm) normalizada a [0, 1].
 pub fn fbm2(x: f32, z: f32, octaves: u32, seed: u32) -> f32 {
     let (mut sum, mut amp, mut freq, mut norm) = (0.0, 1.0, 1.0, 0.0);
     for i in 0..octaves {
         sum += amp * value_noise2(x * freq, z * freq, seed.wrapping_add(i * 101));
-        norm += amp;
-        amp *= 0.5;
-        freq *= 2.03;
-    }
-    sum / norm
-}
-
-pub fn fbm3(x: f32, y: f32, z: f32, octaves: u32, seed: u32) -> f32 {
-    let (mut sum, mut amp, mut freq, mut norm) = (0.0, 1.0, 1.0, 0.0);
-    for i in 0..octaves {
-        sum += amp * value_noise3(x * freq, y * freq, z * freq, seed.wrapping_add(i * 101));
         norm += amp;
         amp *= 0.5;
         freq *= 2.03;

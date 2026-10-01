@@ -7,6 +7,7 @@ const ZOOM_SPEED: f32 = 1.8; // factor exponencial por segundo
 #[derive(Default)]
 pub struct Actions {
     pub screenshot: bool,
+    pub reset_camera: bool,
 }
 
 /// Lee teclado y rueda del mouse y los traduce en movimientos de camara.
@@ -43,5 +44,6 @@ pub fn handle_input(window: &Window, camera: &mut Camera, dt: f32) -> Actions {
 
     Actions {
         screenshot: window.is_key_pressed(Key::P, KeyRepeat::No),
+        reset_camera: window.is_key_pressed(Key::R, KeyRepeat::No),
     }
 }

@@ -20,7 +20,8 @@ pub const PATH: u8 = 15;
 pub const BASE: u8 = 16;
 pub const PAVING: u8 = 17;
 pub const TRUNK: u8 = 18;
-pub const MATERIAL_COUNT: usize = 19;
+pub const FLOWER: u8 = 19;
+pub const MATERIAL_COUNT: usize = 20;
 
 /// Patron procedural que se aplica sobre el albedo.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -43,6 +44,7 @@ pub enum TextureKind {
     Sand,
     Planks,
     Bark,
+    Flower,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -94,7 +96,7 @@ pub fn material_table() -> Vec<Material> {
     // 2. Tejas vidriadas: brillo moderado y un poco de reflejo.
     t[ROOF_TILE as usize] = Material { specular: 0.45, shininess: 32.0, reflectivity: 0.06, ..Material::base("tejas", vec3(0.54, 0.17, 0.11), Tiles) };
     // 3. Cesped: completamente difuso.
-    t[GRASS as usize] = Material { specular: 0.02, ..Material::base("cesped", vec3(0.43, 0.56, 0.28), Grass) };
+    t[GRASS as usize] = Material { specular: 0.02, ..Material::base("cesped", vec3(0.45, 0.56, 0.31), Grass) };
     // 4. Agua: transparente, refracta con IOR 1.33 y refleja segun Fresnel.
     t[WATER as usize] = Material {
         specular: 1.2,
@@ -119,7 +121,7 @@ pub fn material_table() -> Vec<Material> {
     t[DIRT as usize] = Material::base("tierra", vec3(0.46, 0.33, 0.21), Dirt);
     t[ROCK as usize] = Material { specular: 0.08, shininess: 12.0, ..Material::base("roca", vec3(0.52, 0.51, 0.49), Rock) };
     t[WOOD as usize] = Material { specular: 0.5, shininess: 40.0, reflectivity: 0.04, ..Material::base("madera lacada", vec3(0.56, 0.15, 0.10), Lacquer) };
-    t[LEAVES as usize] = Material { specular: 0.04, ..Material::base("hojas", vec3(0.38, 0.53, 0.24), Leaves) };
+    t[LEAVES as usize] = Material { specular: 0.04, ..Material::base("hojas", vec3(0.40, 0.53, 0.27), Leaves) };
     t[PINE as usize] = Material { specular: 0.04, ..Material::base("pino", vec3(0.20, 0.37, 0.24), Leaves) };
     t[SNOW as usize] = Material { specular: 0.25, shininess: 20.0, ..Material::base("nieve", vec3(0.93, 0.95, 0.98), Snow) };
     t[LANTERN as usize] = Material { emission: 3.0, ..Material::base("farol", vec3(1.0, 0.55, 0.18), Lantern) };
@@ -127,6 +129,7 @@ pub fn material_table() -> Vec<Material> {
     t[PATH as usize] = Material::base("camino", vec3(0.70, 0.60, 0.43), Sand);
     t[BASE as usize] = Material { specular: 0.3, shininess: 30.0, ..Material::base("base diorama", vec3(0.30, 0.19, 0.12), Planks) };
     t[TRUNK as usize] = Material::base("tronco", vec3(0.36, 0.23, 0.13), Bark);
+    t[FLOWER as usize] = Material { specular: 0.1, ..Material::base("flores", vec3(1.0, 1.0, 1.0), Flower) };
 
     // Los colores se escriben en sRGB; el render trabaja en espacio lineal.
     for m in &mut t {

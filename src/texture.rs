@@ -153,6 +153,18 @@ pub fn albedo(mat: &Material, sp: &SurfacePoint) -> Vec3 {
             let stripes = value_noise2(u * 10.0, v * 1.5, 101);
             base * (0.7 + 0.45 * stripes)
         }
+        TextureKind::Flower => {
+            // Cada flor elige un color de la paleta segun su celda (ya en lineal).
+            const PALETTE: [Vec3; 4] = [
+                Vec3::new(0.95, 0.70, 0.05),
+                Vec3::new(0.90, 0.25, 0.45),
+                Vec3::new(0.92, 0.92, 0.95),
+                Vec3::new(0.45, 0.20, 0.80),
+            ];
+            let i = (hash3(cx, cy, cz, 55) * 4.0) as usize % 4;
+            let petal = mortar(u * 2.0, v * 2.0, 0.12);
+            base.component_mul(&PALETTE[i]) * (0.6 + 0.4 * petal)
+        }
     };
     color * cell_var
 }

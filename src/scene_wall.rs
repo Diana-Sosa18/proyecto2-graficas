@@ -11,8 +11,12 @@ pub const GRID_X: i32 = 192;
 pub const GRID_Y: i32 = 80;
 pub const GRID_Z: i32 = 144;
 
-/// Ultima fila (y) ocupada por agua.
+/// Ultima fila (y) ocupada por agua en el valle.
 const WATER_LEVEL: i32 = 7;
+/// Nivel del rio en el desfiladero, antes de la cascada.
+const UPPER_WATER: i32 = 20;
+/// Coordenada Z donde el rio cae en cascada al valle.
+const FALL_Z: i32 = 24;
 /// Medio ancho de la muralla en celdas.
 const WALL_HALF: f32 = 4.5;
 /// Altura del camino de la muralla sobre el terreno.
@@ -25,6 +29,14 @@ const BRIDGE_Z: i32 = 96;
 
 fn wall_center(x: f32) -> f32 {
     64.0 + 10.0 * (x * 0.03 + 0.5).sin() + 4.0 * (x * 0.08).sin()
+}
+
+fn water_level(z: i32) -> i32 {
+    if z < FALL_Z {
+        UPPER_WATER
+    } else {
+        WATER_LEVEL
+    }
 }
 
 fn river_x(z: f32) -> f32 {
@@ -42,15 +54,23 @@ fn water_factor(x: f32, z: f32) -> f32 {
 
 fn terrain_height(x: f32, z: f32) -> f32 {
     let back = smoothstep(84.0, 8.0, z);
-    let mountains = back * (14.0 + 38.0 * fbm2(x * 0.024, z * 0.024, 5, 7).powf(1.3) * 1.4);
+    let mountains = back * (15.0 + 44.0 * fbm2(x * 0.024, z * 0.024, 5, 7).powf(1.3) * 1.4);
     let hills = 6.0 * fbm2(x * 0.06 + 31.0, z * 0.06, 4, 3);
     let bump = |cx: f32, r: f32, a: f32| {
         let dx = x - cx;
         let dz = z - wall_center(cx);
         a * (-(dx * dx + dz * dz * 0.5) / (r * r)).exp()
     };
-    let land = 6.5 + hills + mountains + bump(52.0, 20.0, 15.0) + bump(172.0, 18.0, 11.0);
-    let bed = 3.6 + fbm2(x * 0.2, z * 0.2, 2, 11) * 1.2;
+    // Las montanas bajan hacia el borde trasero para no terminar en un acantilado.
+    let taper = 0.4 + 0.6 * smoothstep(0.0, 16.0, z);
+    let mut land = 6.5 + hills + mountains * taper + bump(52.0, 20.0, 15.0) + bump(172.0, 18.0, 11.0);
+    let upper = z < FALL_Z as f32;
+    if upper {
+        // Orillas del desfiladero siempre por encima del rio alto.
+        land = land.max(UPPER_WATER as f32 + 3.0 + hills);
+    }
+    let bed_base = if upper { UPPER_WATER as f32 - 3.4 } else { 3.6 };
+    let bed = bed_base + fbm2(x * 0.2, z * 0.2, 2, 11) * 1.2;
     let f = water_factor(x, z);
     land * (1.0 - f) + bed * f
 }
@@ -109,6 +129,7 @@ pub fn build_scene() -> VoxelGrid {
     build_pavilion(&mut g, &mut b);
     build_trees(&mut g, &mut b);
     build_rocks(&mut g, &mut b);
+    build_flowers(&mut g, &b);
     g.build_distance_field();
     g
 }
@@ -133,7 +154,7 @@ fn build_terrain(g: &mut VoxelGrid, b: &mut Builder) {
             let wet = water_factor(x as f32 + 0.5, z as f32 + 0.5);
             let top = if h > 47 {
                 SNOW
-            } else if wet > 0.35 && h <= WATER_LEVEL + 1 {
+            } else if wet > 0.35 && h <= water_level(z) + 1 {
                 if hash2(x, z, 5) < 0.25 { ROCK } else { PATH }
             } else if slope >= 3 || (slope >= 2 && h > 26) {
                 ROCK
@@ -405,7 +426,9 @@ fn build_water(g: &mut VoxelGrid, b: &mut Builder) {
             if f < 0.3 {
                 continue;
             }
-            for y in b.h(x, z) + 1..=WATER_LEVEL {
+            // La primera fila del valle recibe la columna de la cascada.
+            let top = if z == FALL_Z { UPPER_WATER } else { water_level(z) };
+            for y in b.h(x, z) + 1..=top {
                 if g.get(x, y, z) == AIR {
                     g.set(x, y, z, WATER);
                 }
@@ -593,6 +616,21 @@ fn build_rocks(g: &mut VoxelGrid, b: &mut Builder) {
                 }
             }
             b.reserve(x - 2, z - 2, x + 2, z + 2);
+        }
+    }
+}
+
+/// Flores sueltas sobre el cesped del valle.
+fn build_flowers(g: &mut VoxelGrid, b: &Builder) {
+    for z in 1..GRID_Z - 1 {
+        for x in 1..GRID_X - 1 {
+            let h = b.h(x, z);
+            if h > 18 || g.get(x, h, z) != GRASS || g.get(x, h + 1, z) != AIR {
+                continue;
+            }
+            if hash2(x, z, 2024) < 0.012 {
+                g.set(x, h + 1, z, FLOWER);
+            }
         }
     }
 }

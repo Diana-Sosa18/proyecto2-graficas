@@ -127,6 +127,7 @@ pub fn build_scene() -> VoxelGrid {
     build_bridge(&mut g, &mut b);
     build_houses(&mut g, &mut b);
     build_pavilion(&mut g, &mut b);
+    build_details(&mut g, &mut b);
     build_trees(&mut g, &mut b);
     build_rocks(&mut g, &mut b);
     build_flowers(&mut g, &b);
@@ -526,6 +527,54 @@ fn build_pavilion(g: &mut VoxelGrid, b: &mut Builder) {
     g.fill_box([cx - 3, base + 8, cz - 3], [cx + 3, base + 8, cz + 3], WOOD);
     g.fill_box([cx, base + 12, cz], [cx, base + 14, cz], GOLD);
     b.reserve(cx - 6, cz - 6, cx + 6, cz + 6);
+}
+
+/// Plaza frente a la puerta: incensario ding de oro pulido (superficie
+/// reflectiva) y faroles de piedra a lo largo del camino principal.
+fn build_details(g: &mut VoxelGrid, b: &mut Builder) {
+    let gx = TOWERS_X[GATE_TOWER];
+    let gz = wall_center(gx as f32 + 0.5).floor() as i32;
+
+    // Plaza de losas.
+    let (px0, pz0, px1, pz1) = (gx + 4, gz + 9, gx + 14, gz + 19);
+    let plaza = b.max_h(px0, pz0, px1, pz1);
+    g.fill_box([px0, 1, pz0], [px1, plaza, pz1], STONE_DARK);
+    g.fill_box([px0, plaza, pz0], [px1, plaza, pz1], PAVING);
+    for z in pz0..=pz1 {
+        for x in px0..=px1 {
+            g.fill_box([x, plaza + 1, z], [x, plaza + 12, z], AIR);
+        }
+    }
+
+    // Ding: patas, cuerpo, borde y asas de oro.
+    let (cx, cz, y) = ((px0 + px1) / 2, (pz0 + pz1) / 2, plaza + 1);
+    for (dx, dz) in [(-2, -2), (2, -2), (-2, 2), (2, 2)] {
+        g.set(cx + dx, y, cz + dz, GOLD);
+    }
+    g.fill_box([cx - 3, y + 1, cz - 3], [cx + 3, y + 4, cz + 3], GOLD);
+    g.fill_box([cx - 2, y + 4, cz - 2], [cx + 2, y + 4, cz + 2], STONE_DARK);
+    for dz in [-3, 3] {
+        g.fill_box([cx - 1, y + 5, cz + dz], [cx - 1, y + 6, cz + dz], GOLD);
+        g.fill_box([cx + 1, y + 5, cz + dz], [cx + 1, y + 6, cz + dz], GOLD);
+        g.set(cx, y + 6, cz + dz, GOLD);
+    }
+    g.set(cx, y + 5, cz, LANTERN);
+    b.reserve(px0 - 2, pz0 - 2, px1 + 2, pz1 + 2);
+
+    // Faroles de piedra junto al camino principal.
+    let main_path = path_curves()[0];
+    for i in 1..6 {
+        let (x, z) = bezier(main_path[0], main_path[1], main_path[2], i as f32 / 6.0);
+        let (x, z) = (x as i32 + 3, z as i32);
+        if b.is_reserved(x, z) && g.get(x, b.h(x, z), z) == PATH {
+            continue;
+        }
+        let h = b.h(x, z);
+        g.fill_box([x, h + 1, z], [x, h + 2, z], STONE_DARK);
+        g.set(x, h + 3, z, LANTERN);
+        g.set(x, h + 4, z, ROOF_TILE);
+        b.reserve(x - 1, z - 1, x + 1, z + 1);
+    }
 }
 
 // ---------------------------------------------------------------- vegetacion

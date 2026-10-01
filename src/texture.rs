@@ -102,7 +102,7 @@ pub fn albedo(mat: &Material, sp: &SurfacePoint) -> Vec3 {
                 if fract(v) > lip {
                     green
                 } else {
-                    vec3(0.46, 0.33, 0.21) * (0.85 + 0.25 * fine)
+                    vec3(0.18, 0.09, 0.04) * (0.85 + 0.25 * fine)
                 }
             }
         }

@@ -26,12 +26,13 @@ impl Framebuffer {
     }
 }
 
-/// Convierte color lineal HDR a 0x00RRGGBB con tone mapping y correccion gamma.
+/// Convierte color lineal HDR a 0x00RRGGBB con tone mapping filmico (ACES,
+/// aproximacion de Narkowicz) y correccion gamma.
 pub fn color_to_u32(c: Vec3) -> u32 {
     let map = |v: f32| {
-        let v = v.max(0.0);
-        let v = v / (1.0 + v * 0.35); // tone mapping suave tipo Reinhard
-        (v.powf(1.0 / 2.2).min(1.0) * 255.0 + 0.5) as u32
+        let v = v.max(0.0) * 0.9;
+        let v = (v * (2.51 * v + 0.03)) / (v * (2.43 * v + 0.59) + 0.14);
+        (v.clamp(0.0, 1.0).powf(1.0 / 2.2) * 255.0 + 0.5) as u32
     };
     (map(c.x) << 16) | (map(c.y) << 8) | map(c.z)
 }

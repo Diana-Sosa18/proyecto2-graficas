@@ -1,6 +1,7 @@
 mod camera;
 mod image_export;
 mod input;
+mod lighting;
 mod ray;
 mod raytracer;
 mod renderer;
@@ -31,7 +32,7 @@ fn build_scene() -> Scene {
     let start = Instant::now();
     let grid = scene_wall::build_scene();
     println!("Escena construida en {:.2?}", start.elapsed());
-    Scene { grid, materials: material::material_table() }
+    Scene { grid, materials: material::material_table(), lighting: lighting::Lighting::default() }
 }
 
 fn main() {

@@ -1,6 +1,7 @@
 use crate::camera::Camera;
 use crate::raytracer::{self, Scene};
 use nalgebra_glm::Vec3;
+use std::sync::Mutex;
 
 pub struct Framebuffer {
     pub width: usize,
@@ -37,13 +38,30 @@ pub fn color_to_u32(c: Vec3) -> u32 {
     (map(c.x) << 16) | (map(c.y) << 8) | map(c.z)
 }
 
+/// Filas por banda de trabajo: bandas pequenas balancean mejor la carga.
+const ROWS_PER_BAND: usize = 4;
+
+/// Renderiza en paralelo con `std::thread::scope`. El framebuffer se divide
+/// en bandas de filas; cada hilo toma la siguiente banda libre de una cola
+/// protegida por Mutex, asi ningun hilo se queda ocioso.
 pub fn render(fb: &mut Framebuffer, scene: &Scene, camera: &Camera) {
     let frame = camera.frame();
     let (w, h) = (fb.width, fb.height);
-    for y in 0..h {
-        for x in 0..w {
-            let ray = frame.primary_ray(x as f32 + 0.5, y as f32 + 0.5, w, h);
-            fb.pixels[y * w + x] = color_to_u32(raytracer::trace(scene, &ray));
+    let threads = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4);
+    let bands = Mutex::new(fb.pixels.chunks_mut(w * ROWS_PER_BAND).enumerate());
+
+    std::thread::scope(|s| {
+        for _ in 0..threads {
+            s.spawn(|| loop {
+                let next = bands.lock().unwrap().next();
+                let Some((band, pixels)) = next else { break };
+                let y0 = band * ROWS_PER_BAND;
+                for (i, px) in pixels.iter_mut().enumerate() {
+                    let (x, y) = (i % w, y0 + i / w);
+                    let ray = frame.primary_ray(x as f32 + 0.5, y as f32 + 0.5, w, h);
+                    *px = color_to_u32(raytracer::trace(scene, &ray));
+                }
+            });
         }
-    }
+    });
 }

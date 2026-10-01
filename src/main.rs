@@ -8,6 +8,7 @@ mod scene_wall;
 mod voxel;
 mod voxel_grid;
 mod material;
+mod noise;
 
 use camera::Camera;
 use minifb::{Key, Window, WindowOptions};
@@ -22,7 +23,7 @@ const HEIGHT: usize = 480;
 const PREVIEW_DIV: usize = 2; // 320x240 mientras la camara se mueve
 
 fn default_camera() -> Camera {
-    Camera::new(vec3(0.0, 12.0, 0.0), 0.6, 0.45, 200.0)
+    Camera::new(vec3(0.0, 16.0, 4.0), 0.55, 0.5, 235.0)
 }
 
 fn build_scene() -> Scene {
@@ -36,19 +37,25 @@ fn main() {
     let args: Vec<String> = std::env::args().collect();
     if let Some(i) = args.iter().position(|a| a == "--render") {
         let out = args.get(i + 1).map(String::as_str).unwrap_or("render.png");
-        render_to_file(Path::new(out));
+        let mut camera = default_camera();
+        if let Some(v) = args.iter().position(|a| a == "--view").and_then(|j| args.get(j + 1)) {
+            let p: Vec<f32> = v.split(',').filter_map(|n| n.trim().parse().ok()).collect();
+            if p.len() == 3 {
+                camera.set_orbit(p[0], p[1], p[2]);
+            }
+        }
+        render_to_file(Path::new(out), &camera);
         return;
     }
     run_window();
 }
 
 /// Renderiza un cuadro sin abrir ventana (util para pruebas y capturas).
-fn render_to_file(path: &Path) {
+fn render_to_file(path: &Path, camera: &Camera) {
     let scene = build_scene();
-    let camera = default_camera();
     let mut fb = Framebuffer::new(WIDTH, HEIGHT);
     let start = Instant::now();
-    renderer::render(&mut fb, &scene, &camera);
+    renderer::render(&mut fb, &scene, camera);
     println!("Render {}x{} en {:.2?}", WIDTH, HEIGHT, start.elapsed());
     image_export::save_png(path, fb.width, fb.height, &fb.pixels).expect("no se pudo guardar el PNG");
     println!("Guardado en {}", path.display());

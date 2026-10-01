@@ -1,0 +1,19 @@
+[package]
+name = "proyecto2-graficas"
+version = "0.1.0"
+edition = "2021"
+description = "Diorama de la Gran Muralla China renderizado con raytracing por software"
+
+# Unicas dependencias permitidas por el curso.
+[dependencies]
+minifb = "0.28"
+nalgebra-glm = "0.19"
+
+# El raytracer es muy lento sin optimizaciones; dev usa un nivel intermedio.
+[profile.dev]
+opt-level = 2
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1

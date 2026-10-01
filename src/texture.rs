@@ -156,3 +156,22 @@ pub fn albedo(mat: &Material, sp: &SurfacePoint) -> Vec3 {
     };
     color * cell_var
 }
+
+/// Normal ondulada de la superficie del agua (suma de ondas senoidales).
+/// `up` es +1 o -1 segun la cara impactada; solo se perturban caras horizontales.
+pub fn water_normal(p: Vec3, up: f32) -> Vec3 {
+    // (amplitud, kx, kz, fase)
+    const WAVES: [(f32, f32, f32, f32); 4] = [
+        (0.050, 0.90, 0.35, 0.0),
+        (0.035, -0.55, 1.10, 1.7),
+        (0.025, 1.70, -0.80, 0.5),
+        (0.015, 2.60, 2.10, 2.3),
+    ];
+    let (mut gx, mut gz) = (0.0, 0.0);
+    for (a, kx, kz, phase) in WAVES {
+        let c = (kx * p.x + kz * p.z + phase).cos();
+        gx += a * kx * c;
+        gz += a * kz * c;
+    }
+    vec3(-gx, 1.0, -gz).normalize() * up
+}

@@ -1,5 +1,5 @@
 use crate::camera::Camera;
-use crate::raytracer;
+use crate::raytracer::{self, Scene};
 use nalgebra_glm::Vec3;
 
 pub struct Framebuffer {
@@ -36,13 +36,13 @@ pub fn color_to_u32(c: Vec3) -> u32 {
     (map(c.x) << 16) | (map(c.y) << 8) | map(c.z)
 }
 
-pub fn render(fb: &mut Framebuffer, camera: &Camera) {
+pub fn render(fb: &mut Framebuffer, scene: &Scene, camera: &Camera) {
     let frame = camera.frame();
     let (w, h) = (fb.width, fb.height);
     for y in 0..h {
         for x in 0..w {
             let ray = frame.primary_ray(x as f32 + 0.5, y as f32 + 0.5, w, h);
-            fb.pixels[y * w + x] = color_to_u32(raytracer::trace(&ray));
+            fb.pixels[y * w + x] = color_to_u32(raytracer::trace(scene, &ray));
         }
     }
 }

@@ -4,10 +4,15 @@ mod input;
 mod ray;
 mod raytracer;
 mod renderer;
+mod scene_wall;
+mod voxel;
+mod voxel_grid;
+mod material;
 
 use camera::Camera;
 use minifb::{Key, Window, WindowOptions};
 use nalgebra_glm::vec3;
+use raytracer::Scene;
 use renderer::Framebuffer;
 use std::path::Path;
 use std::time::Instant;
@@ -17,7 +22,14 @@ const HEIGHT: usize = 480;
 const PREVIEW_DIV: usize = 2; // 320x240 mientras la camara se mueve
 
 fn default_camera() -> Camera {
-    Camera::new(vec3(0.0, 0.0, 0.0), 0.6, 0.45, 160.0)
+    Camera::new(vec3(0.0, 12.0, 0.0), 0.6, 0.45, 200.0)
+}
+
+fn build_scene() -> Scene {
+    let start = Instant::now();
+    let grid = scene_wall::build_scene();
+    println!("Escena construida en {:.2?}", start.elapsed());
+    Scene { grid }
 }
 
 fn main() {
@@ -32,10 +44,11 @@ fn main() {
 
 /// Renderiza un cuadro sin abrir ventana (util para pruebas y capturas).
 fn render_to_file(path: &Path) {
+    let scene = build_scene();
     let camera = default_camera();
     let mut fb = Framebuffer::new(WIDTH, HEIGHT);
     let start = Instant::now();
-    renderer::render(&mut fb, &camera);
+    renderer::render(&mut fb, &scene, &camera);
     println!("Render {}x{} en {:.2?}", WIDTH, HEIGHT, start.elapsed());
     image_export::save_png(path, fb.width, fb.height, &fb.pixels).expect("no se pudo guardar el PNG");
     println!("Guardado en {}", path.display());
@@ -51,6 +64,7 @@ fn run_window() {
     .expect("no se pudo crear la ventana");
     window.set_target_fps(60);
 
+    let scene = build_scene();
     let mut camera = default_camera();
     let mut full = Framebuffer::new(WIDTH, HEIGHT);
     let mut preview = Framebuffer::new(WIDTH / PREVIEW_DIV, HEIGHT / PREVIEW_DIV);
@@ -68,11 +82,11 @@ fn run_window() {
 
         let start = Instant::now();
         if moving {
-            renderer::render(&mut preview, &camera);
+            renderer::render(&mut preview, &scene, &camera);
             preview.upscale_into(&mut full);
             full_is_current = false;
         } else if !full_is_current {
-            renderer::render(&mut full, &camera);
+            renderer::render(&mut full, &scene, &camera);
             full_is_current = true;
         }
         let ms = start.elapsed().as_secs_f32() * 1000.0;

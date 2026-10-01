@@ -133,7 +133,7 @@ La cámara orbita alrededor de un objetivo sobre una esfera de radio `distance`,
 Primero, el método de *slabs* recorta el rayo contra el AABB de la grilla. Después, el DDA de Amanatides y Woo avanza celda por celda. Para cada eje guarda `tMax`, el `t` del próximo cruce de frontera, y `tDelta`, el `t` necesario para cruzar una celda completa. Cada paso elige el eje con menor `tMax`. Así, el costo depende de las celdas atravesadas y no del total de bloques. El eje del último paso define la normal de la cara impactada, de modo que las caras ocultas nunca se procesan.
 
 ### Salto de espacio vacío
-Al construir la escena, tres pasadas separables calculan para cada celda la distancia de Chebyshev a la celda ocupada más cercana, con tope de 12. Si un rayo que viaja por el aire entra a una celda con distancia `d`, avanza `d − 1` unidades sin riesgo de atravesar geometría y reinicia el DDA en ese punto. Este salto redujo el tiempo promedio de 76 ms a unos 50 ms por cuadro.
+Al construir la escena, tres pasadas separables calculan para cada celda la distancia de Chebyshev a la celda ocupada más cercana, con tope de 12. Si un rayo que viaja por el aire entra a una celda con distancia `d`, avanza `d − 1` unidades sin riesgo de atravesar geometría y reinicia el DDA en ese punto. Este salto redujo el tiempo promedio de 76 ms a unos 50 ms por cuadro, medido sobre la misma escena.
 
 ### Materiales y texturas
 Cada voxel guarda un `material_id`. La tabla de materiales define albedo, especular, exponente de brillo, reflectividad, transparencia, IOR, emisión y textura. Los cinco materiales principales son:
@@ -180,7 +180,7 @@ Medición con `--bench` en un CPU de 8 hilos lógicos, a 640 × 480 y una muestr
 |---|---:|
 | Un hilo (vista general) | ≈ 330 ms |
 | 8 hilos | ≈ 76 ms |
-| 8 hilos + salto de espacio vacío | ≈ 35–50 ms |
+| 8 hilos + salto de espacio vacío | ≈ 35–55 ms |
 
 ## Cobertura de la rúbrica
 

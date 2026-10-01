@@ -5,6 +5,7 @@ mod ray;
 mod raytracer;
 mod renderer;
 mod scene_wall;
+mod texture;
 mod voxel;
 mod voxel_grid;
 mod material;
@@ -30,7 +31,7 @@ fn build_scene() -> Scene {
     let start = Instant::now();
     let grid = scene_wall::build_scene();
     println!("Escena construida en {:.2?}", start.elapsed());
-    Scene { grid }
+    Scene { grid, materials: material::material_table() }
 }
 
 fn main() {

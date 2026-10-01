@@ -1,6 +1,4 @@
-//! Escritor PNG minimo implementado solo con `std`.
-//! Usa bloques deflate "stored" (sin compresion): el archivo pesa mas,
-//! pero el formato es valido y no requiere ninguna libreria externa.
+
 
 use std::fs::File;
 use std::io::{self, Write};
